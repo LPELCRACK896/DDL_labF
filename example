@@ -1,0 +1,5 @@
+graph {
+	A [label="Node A"]
+	B [style=invisible]
+	A -- B [label="Extra Label" len=1.5]
+}

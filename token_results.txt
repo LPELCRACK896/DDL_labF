@@ -1,0 +1,16 @@
+STATE	> Line	> Token
+ERROR>aaa>False
+SUCCESS>a>letra
+SUCCESS>123>numero
+ERROR>hola>False
+SUCCESS>
+>delimitador
+SUCCESS>
+>delimitador
+SUCCESS>
+>delimitador
+SUCCESS>
+>delimitador
+SUCCESS>+>+
+SUCCESS>*>*
+SUCCESS>=>=

@@ -1,0 +1,42 @@
+digraph {
+	graph [rankdir=LR]
+	start [label=start shape=plaintext]
+	"(delimitador)_A" [shape=doublecircle]
+	"(delimitador)_B" [color=red shape=diamond]
+	start -> "(delimitador)_B" [label="ε"]
+	"(delimitador)_C"
+	"(delimitador)_A" -> "(delimitador)_C" [label="/t, /n, BS"]
+	"(delimitador)_B" -> "(delimitador)_A" [label="/t, /n, BS"]
+	"(delimitador)_C" -> "(delimitador)_C" [label="/t, /n, BS"]
+	"(espacioEnBlanco)_A" [shape=doublecircle]
+	"(espacioEnBlanco)_B" [color=red shape=diamond]
+	start -> "(espacioEnBlanco)_B" [label="ε"]
+	"(espacioEnBlanco)_A" -> "(espacioEnBlanco)_A" [label="/t, /n, BS"]
+	"(espacioEnBlanco)_B" -> "(espacioEnBlanco)_A" [label="/t, /n, BS"]
+	"(digito)_A" [shape=doublecircle]
+	"(digito)_B" [color=red shape=diamond]
+	start -> "(digito)_B" [label="ε"]
+	"(digito)_C"
+	"(digito)_A" -> "(digito)_C" [label="0, 3, 9, 2, 5, 6, 8, 7, 1, 4"]
+	"(digito)_B" -> "(digito)_A" [label="0, 3, 9, 2, 5, 6, 8, 7, 1, 4"]
+	"(digito)_C" -> "(digito)_C" [label="0, 3, 9, 2, 5, 6, 8, 7, 1, 4"]
+	"(numero)_A" [shape=doublecircle]
+	"(numero)_B" [color=red shape=diamond]
+	start -> "(numero)_B" [label="ε"]
+	"(numero)_C"
+	"(numero)_D"
+	"(numero)_A" -> "(numero)_A" [label="0, 3, 9, 2, 5, 6, 8, 7, 1, 4"]
+	"(numero)_A" -> "(numero)_D" [label="-"]
+	"(numero)_B" -> "(numero)_A" [label="0, 3, 9, 2, 5, 6, 8, 7, 1, 4"]
+	"(numero)_B" -> "(numero)_C" [label="-"]
+	"(numero)_C" -> "(numero)_A" [label="0, 3, 9, 2, 5, 6, 8, 7, 1, 4"]
+	"(numero)_C" -> "(numero)_D" [label="-"]
+	"(numero)_D" -> "(numero)_D" [label="0, 3, 9, 2, -, 5, 6, 8, 7, 1, 4"]
+	"(letra)_A" [shape=doublecircle]
+	"(letra)_B" [color=red shape=diamond]
+	start -> "(letra)_B" [label="ε"]
+	"(letra)_C"
+	"(letra)_A" -> "(letra)_C" [label="B, Q, W, N, Z, t, w, Y, L, P, f, U, h, y, G, m, s, x, b, D, j, o, K, i, A, l, e, I, n, T, a, c, C, q, E, k, F, J, O, V, S, H, g, R, z, M, v, r, X, p, u, d"]
+	"(letra)_B" -> "(letra)_A" [label="B, Q, W, N, Z, t, w, Y, L, P, f, U, h, y, G, m, s, x, b, D, j, o, K, i, A, l, e, I, n, T, a, c, C, q, E, k, F, J, O, V, S, H, g, R, z, M, v, r, X, p, u, d"]
+	"(letra)_C" -> "(letra)_C" [label="B, Q, W, N, Z, t, w, Y, L, P, f, U, h, y, G, m, s, x, b, D, j, o, K, i, A, l, e, I, n, T, a, c, C, q, E, k, F, J, O, V, S, H, g, R, z, M, v, r, X, p, u, d"]
+}
