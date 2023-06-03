@@ -13,3 +13,7 @@ ANCIENT_SYMBOLS = [
     '\U00010193',
     '\U00010194'
     ]
+
+LETTERS = 'abcdefghijklmnopqrstuvwxyz'
+UPPER_LETTERS = LETTERS.upper()
+NUMBERS = '0123456789'

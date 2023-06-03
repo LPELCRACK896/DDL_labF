@@ -8,7 +8,7 @@ class Stack():
         constructor
         """
         self.items = []
-
+    
     def isEmpty(self):
         """
         checkear si el stack esta vacio
@@ -38,3 +38,9 @@ class Stack():
         devuelve el tamano del stack
         """
         return len(self.items)
+    
+    def add_stack_on_top(self, stack_items: list):
+        self.items = self.items + stack_items
+    
+    def add_stack_on_down(self, stack_items: list):
+        self.items =  stack_items + self.items

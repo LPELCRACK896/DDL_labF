@@ -1,0 +1,110 @@
+digraph LR0 {
+	rankdir=LR
+	node [shape=circle]
+	0 [label="0
+
+expression' → .expression
+---Derivados---
+expression → .expression PLUS term
+factor → .LPAREN expression RPAREN
+term → .term TIMES factor
+term → .factor
+expression → .term
+factor → .ID"]
+	1 [label="1
+
+factor → ID.
+---Derivados---
+"]
+	2 [label="2
+
+expression → term.
+---No derivados---
+term → term.TIMES factor
+---Derivados---
+"]
+	3 [label="3
+
+term → factor.
+---Derivados---
+"]
+	4 [label="4
+
+factor → LPAREN.expression RPAREN
+---Derivados---
+expression → .expression PLUS term
+factor → .LPAREN expression RPAREN
+term → .term TIMES factor
+term → .factor
+expression → .term
+factor → .ID"]
+	5 [label="5
+
+expression → expression.PLUS term
+---No derivados---
+expression' → expression.
+---Derivados---
+"]
+	6 [label="6
+
+expression → expression PLUS.term
+---Derivados---
+factor → .LPAREN expression RPAREN
+term → .term TIMES factor
+term → .factor
+factor → .ID"]
+	7 [label="7
+
+expression → expression PLUS term.
+---No derivados---
+term → term.TIMES factor
+---Derivados---
+"]
+	8 [label="8
+
+term → term TIMES.factor
+---Derivados---
+factor → .LPAREN expression RPAREN
+factor → .ID"]
+	9 [label="9
+
+term → term TIMES factor.
+---Derivados---
+"]
+	10 [label="10
+
+expression → expression.PLUS term
+---No derivados---
+factor → LPAREN expression.RPAREN
+---Derivados---
+"]
+	11 [label="11
+
+factor → LPAREN expression RPAREN.
+---Derivados---
+"]
+	12 [label=Aceptado]
+	0 -> 1 [label=ID]
+	0 -> 2 [label=term]
+	0 -> 3 [label=factor]
+	0 -> 4 [label=LPAREN]
+	0 -> 5 [label=expression]
+	5 -> 6 [label=PLUS]
+	6 -> 3 [label=factor]
+	6 -> 1 [label=ID]
+	6 -> 7 [label=term]
+	6 -> 4 [label=LPAREN]
+	7 -> 8 [label=TIMES]
+	8 -> 9 [label=factor]
+	8 -> 1 [label=ID]
+	8 -> 4 [label=LPAREN]
+	4 -> 1 [label=ID]
+	4 -> 2 [label=term]
+	4 -> 3 [label=factor]
+	4 -> 4 [label=LPAREN]
+	4 -> 10 [label=expression]
+	10 -> 11 [label=RPAREN]
+	10 -> 6 [label=PLUS]
+	2 -> 8 [label=TIMES]
+	5 -> 12 [label="$"]
+}
