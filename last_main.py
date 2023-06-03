@@ -27,8 +27,11 @@ def compile() -> Stack:
     errores.add_stack_on_top(yalex.errors.items)
     
     lr0 = LRCERO(yapl)
+    print(lr0.parser_table)
     estados, transiciones = lr0.estados, lr0.transiciones
     firsts, nexts = lr0.primero, lr0.siguiente
+
+
     lr0.render("new_render")
     return errores
 

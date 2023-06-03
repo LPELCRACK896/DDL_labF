@@ -5,6 +5,8 @@ from graphviz import Digraph
 from stack import Stack
 from YALEX import Yalex
 from dataclasses import dataclass
+import pandas as pd
+import numpy as np
 
 class Yapl():
     def __new__(cls, yapl_file, yalex: Yalex):
@@ -96,8 +98,10 @@ class LRCERO():
         self.estados, self.transiciones = self.__LR_cannonical_collections()
         self.terminales, self.no_terminales = (lambda producciones: (set(symbol for no_terminal in list(producciones.keys()) for production in producciones[no_terminal] for symbol in production if symbol not in list(producciones.keys())), set(producciones.keys())))(self.producciones)
         self.primero = LL_first_sets(self.producciones, self.terminales, self.no_terminales)
-        self.siguiente = LL_follow_sets(self.producciones, self.primero, self.no_terminales)
-        #self.parserTable: ParserTable = self.__build_parser_table()
+        self.siguientes = LL_follow_sets(self.producciones, self.primero, self.no_terminales)
+        self.action_table = pd.DataFrame(index=range(len(self.estados)), columns=list(self.terminales))
+        self.goto_table = pd.DataFrame(index=range(len(self.estados)), columns=list(self.no_terminales))
+        self.parser_table: pd.DataFrame = self.__build_parser_table()
 
     def __LR_cannonical_collections(self):
         simbolo_inicial = list(self.producciones.keys())[0]
@@ -150,9 +154,55 @@ class LRCERO():
                             encuentra_nuevo = True
             if not encuentra_nuevo: return items
 
-    def __build_parser_table(self) -> ParserTable:
-        return None
+    def __build_parser_table(self) -> pd.DataFrame:
+        simbolo_inicial = list(self.producciones.keys())[0]
+        simbolo_de_gram_aumentada = f"{simbolo_inicial}'"
+        copia_estados = self.estados.copy()
+        copia_terminales = list(self.terminales.copy())[:]
+        final = copia_estados.pop()
+        if len(final)!=0:
+            self.errores.push(Error(500, "Espera el ultimo estado vacio", "LABF" ))
+            return None
+        
+        all_producciones = [(llave, tuple(valor)) for llave in self.producciones for valor in self.producciones[llave]]
+        i_producciones = {prod: idx for idx, prod in enumerate(all_producciones)}
+        self.action_table = self.action_table.fillna(np.nan)
+        self.goto_table = self.goto_table.fillna(np.nan)
+        for i, estado in enumerate(copia_estados):
+            for itemlr in estado:
+                variable = itemlr.produccion[0]
+                derivacion = itemlr.produccion[1] 
+                itemlr: LR0Item = itemlr # Solo para que reconozca el tipo
+                if  itemlr.posicion == len(derivacion) and variable == simbolo_de_gram_aumentada : self.action_table.loc[i, '$'] = "A"
+                elif itemlr.posicion == len(derivacion):
+                   for symb in self.siguientes.get(variable, []):
+                       i_produccion = (variable, tuple(derivacion))
+                       if symb != "$" and pd.notna(self.action_table.loc[i, symb]): self.errores.push(Error(600, f"ERROR EN GRAMATICA sobre simbolo {symb} - REDUCE", "INCOMPATIBILIDAD GRAMATICA NO SLR"))
+                       else: self.action_table.loc[i, symb] = f"R{i_producciones.get(i_produccion, -1)}"
+            for transicion in self.transiciones:
+                if i == transicion[0]:
+                    inicio =  transicion[1]
+                    final =  transicion[2]
+                    if inicio in self.no_terminales:
+                        if pd.notna(self.goto_table.loc[i, inicio]): self.errores.push(Error(600, f"Duplicacion de accion sobre  {inicio}", "INCOMPATIBILIDAD GRAMATICA NO SLR"))
+                        self.goto_table.loc[i, inicio] = str(final)
+                    elif inicio in self.terminales:
+                        if pd.notna(self.action_table.loc[i, inicio]) and inicio != "$": self.errores.push(Error(600, f"Duplicacion de accion sobre  {inicio}", "INCOMPATIBILIDAD GRAMATICA NO SLR"))
+                        elif inicio != "$": self.action_table.loc[i, inicio] = f"S{final}"
+                    else: self.errores.push(Error(600, f"Valor de trancicions no encontrado en terminales o no termianlles {inicio}", "INCOMPATIBILIDAD GRAMATICA NO SLR"))
 
+
+        return self.__setup_parser_table()
+
+    def __setup_parser_table(self):
+        self.action_table = self.action_table.fillna("-")
+        self.goto_table = self.goto_table.fillna("-")
+        self.parser_table = pd.concat([self.action_table, self.goto_table], axis=1)
+        self.parser_table = self.parser_table.drop(self.parser_table.index[- 1])
+        self.action_table = self.action_table.drop(self.action_table.index[-1])
+        self.goto_table = self.goto_table.drop(self.goto_table.index[-1])
+        return self.parser_table
+    
     def render(self, filename):
         grafico = Digraph("LRCERO", format='pdf')
         grafico.attr(rankdir="LR")
