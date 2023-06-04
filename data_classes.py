@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from stack import Stack
 
 @dataclass
 class Error:
@@ -8,6 +9,20 @@ class Error:
 
     def __str__(self):
         return f"Error {self.type} {self.code}: {self.message}"
+
+@dataclass
+class Response:
+    status: int
+    success: bool
+    errors: Stack = Stack()
+    msg: str = ""
+
+    def __str__(self) -> str:
+        exito = "Proceso finalizado con exito" if self.success else "Proceso no finalizado correctamente."
+        error = None
+        if not self.errors.isEmpty():
+            error = f"\n{self.errors}"
+        return f"{self.status} - {exito} - {self.msg} {error}"    
 
 @dataclass
 class LR0Item:
@@ -26,7 +41,10 @@ class LR0Item:
 
     def __hash__(self): 
         return hash((self.produccion, self.posicion))
- 
+
+
+
+
 @dataclass
 class ParserTable:
     producciones: dict

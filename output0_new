@@ -1,0 +1,11 @@
+ID
+#UNDEF letter regex identificada pero no asociada a token
+#ERROR -> False
+ID
+#UNDEF delim regex identificada pero no asociada a token
+#UNDEF delim regex identificada pero no asociada a token
+#UNDEF delim regex identificada pero no asociada a token
+#UNDEF delim regex identificada pero no asociada a token
+PLUS
+TIMES
+#ERROR -> False

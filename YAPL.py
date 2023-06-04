@@ -1,13 +1,13 @@
 import os
 import re
-from data_classes import Error, LR0Item, ParserTable
+from data_classes import Error, LR0Item, ParserTable, Response
 from graphviz import Digraph
 from stack import Stack
 from YALEX import Yalex
 from dataclasses import dataclass
 import pandas as pd
 import numpy as np
-
+import c_styles as cs
 class Yapl():
     def __new__(cls, yapl_file, yalex: Yalex):
         if not cls.check_file(yapl_file):
@@ -164,8 +164,8 @@ class LRCERO():
             self.errores.push(Error(500, "Espera el ultimo estado vacio", "LABF" ))
             return None
         
-        all_producciones = [(llave, tuple(valor)) for llave in self.producciones for valor in self.producciones[llave]]
-        i_producciones = {prod: idx for idx, prod in enumerate(all_producciones)}
+        self.all_producciones = [(llave, tuple(valor)) for llave in self.producciones for valor in self.producciones[llave]]
+        self.i_producciones = {prod: idx for idx, prod in enumerate(self.all_producciones)}
         self.action_table = self.action_table.fillna(np.nan)
         self.goto_table = self.goto_table.fillna(np.nan)
         for i, estado in enumerate(copia_estados):
@@ -178,7 +178,7 @@ class LRCERO():
                    for symb in self.siguientes.get(variable, []):
                        i_produccion = (variable, tuple(derivacion))
                        if symb != "$" and pd.notna(self.action_table.loc[i, symb]): self.errores.push(Error(600, f"ERROR EN GRAMATICA sobre simbolo {symb} - REDUCE", "INCOMPATIBILIDAD GRAMATICA NO SLR"))
-                       else: self.action_table.loc[i, symb] = f"R{i_producciones.get(i_produccion, -1)}"
+                       else: self.action_table.loc[i, symb] = f"R{self.i_producciones.get(i_produccion, -1)}"
             for transicion in self.transiciones:
                 if i == transicion[0]:
                     inicio =  transicion[1]
@@ -217,7 +217,48 @@ class LRCERO():
             grafico.node(str(num_estado), label= label)
         for trancision in self.transiciones: grafico.edge(tail_name=str(trancision[0]), head_name=str(trancision[2]), label = trancision[1])
         grafico.render(filename.split('.')[0], cleanup=True)
+    
+    def parse_input(self, input_string, max_iterations = 1000):
+        MAX_ITERATIONS = max_iterations
+        stack = Stack()
+        stack.push(0)
+        i = 0
+        for _ in range(MAX_ITERATIONS):
+            errors = Stack()
+            top_stack = stack.peek()
+            if not i<len(input_string):
+                print("Accion invalida, el proceso se quedo sin simbolos para procesar")
+                errors.push(Error(600, f"Accion invalida, el proceso se quedo sin simbolos para procesar", "PARSER"))
+                return Response(status = 400, success=True, errors=errors, msg = f"Accion invalida, el proceso se quedo sin simbolos para procesar" ), False
+            
+            symbol = input_string[i]
+            action = self.parser_table.loc[int(top_stack), symbol]
+            
+            if action == '-':
+                print(cs.s_magenta(f"({i}) Saltando símbolo"))
+                i += 1
+            else:
+                if action[0] == 'S':  # Shifts
+                    stack.push(symbol)
+                    stack.push(int(action[1:]))
+                    i += 1
+                    print(cs.s_yellow(f"Desplazando símbolo {symbol} a la pila (shifting)"))
+                elif action[0] == 'R':  # Reduce
+                    production = self.all_producciones[int(action[1:])]
+                    for _ in range(2 * len(production[1])):
+                        stack.pop()
+                    top_stack = stack.peek()
+                    stack.push(production[0])
+                    stack.push(self.goto_table.loc[top_stack, production[0]])
+                    print(cs.s_cyan(f"Reduciendo pila con la producción {production} (reducing)"))
+                elif action[0] == 'A':
+                    return Response(status  = 200, success=True, msg="Tokens parseados y aceptados"), True
+                else:
+                    errors.push(Error(600, f"Accion invalida {action}", "PARSER"))
+                    return Response(status = 400, success=True, errors=errors, msg = f"Accion invalida '{action}'" ), False
 
+        return Response(status = 200, success=True, errors=errors, msg = f"SECUencia no definida" ), False
+    
 def LL_first_sets(producciones, terminales, no_terminales):
     firsts = {no_terminal: set() for no_terminal in no_terminales}
 
@@ -282,4 +323,5 @@ def LL_follow_sets(producciones, firsts, no_terminales):
 
     return follow
 
- 
+def yalex_output_to_parser(filname_output = "output0"):
+    pass

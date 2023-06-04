@@ -1,0 +1,30 @@
+digraph {
+	graph [rankdir=LR]
+	start [label=start shape=plaintext]
+	"(delim)_A" [shape=doublecircle]
+	"(delim)_B" [color=red shape=diamond]
+	start -> "(delim)_B" [label="ε"]
+	"(delim)_C"
+	"(delim)_A" -> "(delim)_C" [label="BS, /n, /t"]
+	"(delim)_B" -> "(delim)_A" [label="BS, /n, /t"]
+	"(delim)_C" -> "(delim)_C" [label="BS, /n, /t"]
+	"(ws)_A" [shape=doublecircle]
+	"(ws)_B" [color=red shape=diamond]
+	start -> "(ws)_B" [label="ε"]
+	"(ws)_A" -> "(ws)_A" [label="BS, /n, /t"]
+	"(ws)_B" -> "(ws)_A" [label="BS, /n, /t"]
+	"(letter)_A" [shape=doublecircle]
+	"(letter)_B"
+	"(letter)_C" [color=red shape=diamond]
+	start -> "(letter)_C" [label="ε"]
+	"(letter)_A" -> "(letter)_B" [label="i, x, q, K, y, O, o, H, Q, X, U, d, I, N, m, D, p, E, v, w, V, a, h, j, P, s, L, g, r, F, e, Z, J, S, f, t, b, A, Y, z, n, u, c, k, C, M, l, T, B, R, W, G"]
+	"(letter)_B" -> "(letter)_B" [label="i, x, q, K, y, O, o, H, Q, X, U, d, I, N, m, D, p, E, v, w, V, a, h, j, P, s, L, g, r, F, e, Z, J, S, f, t, b, A, Y, z, n, u, c, k, C, M, l, T, B, R, W, G"]
+	"(letter)_C" -> "(letter)_A" [label="i, x, q, K, y, O, o, H, Q, X, U, d, I, N, m, D, p, E, v, w, V, a, h, j, P, s, L, g, r, F, e, Z, J, S, f, t, b, A, Y, z, n, u, c, k, C, M, l, T, B, R, W, G"]
+	"(digit)_A" [shape=doublecircle]
+	"(digit)_B" [color=red shape=diamond]
+	start -> "(digit)_B" [label="ε"]
+	"(digit)_C"
+	"(digit)_A" -> "(digit)_C" [label="1, 6, 3, 9, 5, 0, 7, 4, 8, 2"]
+	"(digit)_B" -> "(digit)_A" [label="1, 6, 3, 9, 5, 0, 7, 4, 8, 2"]
+	"(digit)_C" -> "(digit)_C" [label="1, 6, 3, 9, 5, 0, 7, 4, 8, 2"]
+}

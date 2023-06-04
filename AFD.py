@@ -67,56 +67,59 @@ class AFD():
 
     def __quick_fix_minmize_rm_unreacheble_states(self):
 
-        def __explore_next(state, backtrack: list):
-            backtrack.append(state)
-            reached_states = set(backtrack)
+        def __explore_next(state, reached_states: set):
+            reached_states.add(state)
             for chr in self.alfabeto:
                 next_one = self.transitions.get(state).get(chr)
-                if not next_one in backtrack:
-                    reached_states = __explore_next(next_one, backtrack)
+                if not next_one in reached_states:
+                    __explore_next(next_one, reached_states)
 
-            return reached_states
-        existing_states : set = set(self.estados)    
-        reached_states: set = __explore_next(self.estado_inicial,  [])
-        unreached_states = list(existing_states.difference(reached_states))
+        existing_states = self.estados   
+        reached_states = set()
+        __explore_next(self.estado_inicial, reached_states)
+        unreached_states = [state for state in existing_states if state not in reached_states]
 
         for un_stt in unreached_states:     
             self.estados.remove(un_stt)
             del self.transitions[un_stt]
             if un_stt in self.estados_de_aceptacion:
                 self.estados_de_aceptacion.remove(un_stt)
-        return        
 
 
 
 
     def minimize(self):
-        table = [[False for _ in range(len(self.estados))] for _ in range(len(self.estados))]
+        num_states = len(self.estados)
+        state_to_index = {state: index for index, state in enumerate(self.estados)}
 
-        for i in range(len(self.estados)):
-            for j in range(i + 1, len(self.estados)):
+        table = [[False for _ in range(num_states)] for _ in range(num_states)]
+        distinguishable_pairs = set()
+
+        for i in range(num_states):
+            for j in range(i + 1, num_states):
                 state1, state2 = self.estados[i], self.estados[j]
                 if (state1 in self.estados_de_aceptacion) != (state2 in self.estados_de_aceptacion):
                     table[i][j] = True
+                    distinguishable_pairs.add((i, j))
 
-        change = True
-        while change:
-            change = False
-            for i in range(len(self.estados)):
-                for j in range(i + 1, len(self.estados)):
-                    if not table[i][j]:
-                        state1, state2 = self.estados[i], self.estados[j]
-                        for symbol in self.alfabeto:
-                            next_state1, next_state2 = self.transitions[state1][symbol], self.transitions[state2][symbol]
-                            idx1, idx2 = self.estados.index(next_state1), self.estados.index(next_state2)
-                            if table[min(idx1, idx2)][max(idx1, idx2)]:
-                                table[i][j] = True
-                                change = True
-                                break
+        while distinguishable_pairs:
+            i, j = distinguishable_pairs.pop()
+            for k in range(i):
+                if not table[k][i] and any(table[min(state_to_index[self.transitions[self.estados[k]][symbol]], state_to_index[self.transitions[self.estados[i]][symbol]])][max(state_to_index[self.transitions[self.estados[k]][symbol]], state_to_index[self.transitions[self.estados[i]][symbol]])] for symbol in self.alfabeto):
+                    table[k][i] = True
+                    distinguishable_pairs.add((k, i))
+            for k in range(i+1, j):
+                if not table[i][k] and any(table[min(state_to_index[self.transitions[self.estados[i]][symbol]], state_to_index[self.transitions[self.estados[k]][symbol]])][max(state_to_index[self.transitions[self.estados[i]][symbol]], state_to_index[self.transitions[self.estados[k]][symbol]])] for symbol in self.alfabeto):
+                    table[i][k] = True
+                    distinguishable_pairs.add((i, k))
+            for k in range(j+1, num_states):
+                if not table[j][k] and any(table[min(state_to_index[self.transitions[self.estados[j]][symbol]], state_to_index[self.transitions[self.estados[k]][symbol]])][max(state_to_index[self.transitions[self.estados[j]][symbol]], state_to_index[self.transitions[self.estados[k]][symbol]])] for symbol in self.alfabeto):
+                    table[j][k] = True
+                    distinguishable_pairs.add((j, k))
 
         groups = []
-        for i in range(len(self.estados)):
-            for j in range(i + 1, len(self.estados)):
+        for i in range(num_states):
+            for j in range(i + 1, num_states):
                 if not table[i][j]:
                     state1, state2 = self.estados[i], self.estados[j]
                     for group in groups:

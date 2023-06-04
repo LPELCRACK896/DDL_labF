@@ -8,24 +8,42 @@ from AFN import AFN
 from regex_to_afn import generate_afn_from_posfix
 from regex_to_posfix import infix_to_posfix
 import graphviz
+from data_classes import Error
 
+def reverse_process_line_for_special_chars(line):
+    nw_line = ""
+    for chr in line:
+        if chr in ANCIENT_SYMBOLS:
+            nw_line += OPERATORS[ANCIENT_SYMBOLS.index(chr)]
+        else:
+            nw_line += chr
+    return nw_line
+
+def process_line_for_special_chars(line):
+    nw_line = ""
+    for chr in line:
+        if chr in OPERATORS:
+            nw_line += ANCIENT_SYMBOLS[OPERATORS.index(chr)]
+        else:
+            nw_line += chr
+    return nw_line
 def file_into_list(filename):
     content = None
-    with open(filename, 'r') as file:
+    with open(filename, 'r', encoding="utf-8") as file:
         lines = file.readlines()
         content = []
         for line in lines:
             if len(line)>1:
                 line_content, endline = line[:-1], line[-1:]
                 if endline=="\n":
-                    content.append(line_content)
+                    content.append(process_line_for_special_chars(line_content))
                 else:
-                    content.append(line)
+                    content.append(process_line_for_special_chars(line))
             else:
-                content.append(line)
+                content.append(process_line_for_special_chars(line))
     return content
 
-def render_super_afn(afds: dict):
+def render_super_afn(afds: dict, filename = 'super_automate'):
     
     g = graphviz.Digraph(format='pdf')
     g.graph_attr['rankdir'] = 'LR'
@@ -49,6 +67,8 @@ def render_super_afn(afds: dict):
                     next_state = trans.get(symbol)
                     edge_key = (f"({token})_{state}", f"({token})_{next_state}")
                     label = symbol.replace(' ', 'BS').replace('\t', '/t').replace('\n', '/n')
+                    if label in ANCIENT_SYMBOLS:
+                        label = OPERATORS[ANCIENT_SYMBOLS.index(label)]
                     if edge_key in edge_labels:
                         edge_labels[edge_key].append(label)
                     else:
@@ -56,9 +76,10 @@ def render_super_afn(afds: dict):
 
         for edge_key, labels in edge_labels.items():
             g.edge(edge_key[0], edge_key[1], label=', '.join(labels))
-
-    g.render('super_automate', view=True)
-
+    try:
+        g.render(filename, view=True)
+    except:
+        print("No fue posible renderizar super automata. Posiblemente el archivo pdf esta abierto")
 @dataclass
 class ExpressionComponent:
     type: str
@@ -188,6 +209,8 @@ class SuperAFN:
                     build_expression.push(last)
                 elif char == "+":
                     build_expression.push(ExpressionComponent("operation", "+", None, "closed"))
+                elif char == ".":
+                    build_expression.push(ExpressionComponent("operation", ".", None, "closed"))
                 elif char == "|":
                     build_expression.push(ExpressionComponent("operation", "|", None, "closed"))
                 elif char == "*":
@@ -216,11 +239,11 @@ class SuperAFN:
                     reading_target = "string"
                     build_expression.push(ExpressionComponent("string", "", None, "open"))
                 elif char == "[":
-                    return "Cannot create an interval inside an interval"
+                    return "Cannot create an interval inside an interval", None
                 elif char == "]":
-                    return "Cannot set an empty interval"
+                    return "Cannot set an empty interval", None
                 else:
-                    return f"Cannot start interval with {char}"
+                    return f"Cannot start interval with {char}", None
             elif reading_target == "variable":
                 if char == '\'':
                     exp: ExpressionComponent = build_expression.peek()
@@ -233,7 +256,7 @@ class SuperAFN:
                     reading_target  = "interval"
                     build_expression.push(ExpressionComponent("interval", None, [], "open"))
                 elif char == "]":
-                    return "Cannot use ] in a variable name"
+                    return "Cannot use ] in a variable name", None
                 elif char == "+":
                     exp: ExpressionComponent = build_expression.peek()
                     exp.state = "closed"
@@ -252,12 +275,18 @@ class SuperAFN:
                 elif char == "?":
                     exp: ExpressionComponent = build_expression.peek()
                     exp.state = "closed"
+                    reading_target = None
                     build_expression.push(ExpressionComponent("operation", "?", None, "closed"))
                 elif char == "-":
                     exp: ExpressionComponent = build_expression.peek()
                     exp.state = "closed"
                     reading_target = None
                     build_expression.push(ExpressionComponent("operation", "-", None, "closed"))
+                elif char == ".":
+                    exp: ExpressionComponent = build_expression.peek()
+                    exp.state = "closed"
+                    reading_target = None
+                    build_expression.push(ExpressionComponent("operation", ".", None, "closed"))
                 elif char == "(":
                     exp: ExpressionComponent = build_expression.peek()
                     exp.state = "closed"
@@ -275,6 +304,9 @@ class SuperAFN:
 
             i += 1
 
+        last_item: ExpressionComponent = build_expression.peek()
+        if last_item.type == 'variable' and last_item.content == '\n':
+            build_expression.pop()
         return error, build_expression
 
     def __minimum_exclusive_interval(self, sets):
@@ -420,7 +452,7 @@ class SuperAFN:
         for token, expression in self.lets.items():
             error, stack = self.rebuild_expression(expression=expression)
             if error:
-                return error
+                return False, error 
             tk_stck =Stack()
             for item in stack.items:
                 tk_stck.items += decompose_ExpressionComponent_into_list(item)
@@ -433,9 +465,9 @@ class SuperAFN:
             for part in info.items:
                 if part.type =="variable":
                     if part.content == token:
-                        return f"Circular reference on token {token}"
-                    if part.content not in tokens:
-                        return f"Unexsting reference on token definition {token}"
+                        return False, f"Circular reference on token {token}"
+                    elif part.content not in tokens:
+                        return False, f"Unexsting reference on token definition {token}"
                     
                     if token in token_dependencies: #Revisa si ya existe en el diccionario
                         current_dependencies = token_dependencies[token]
@@ -472,11 +504,12 @@ class SuperAFN:
                     tokens.remove(actual_token)
 
         self.lets_regex = token_regex
+        return True, None
                  
     def build_afds(self):
         if not self.lets_regex:
-            print("Must have created token_regex by using build_lets_regex()")
-            return
+            
+            return False, "Must have created token_regex by using build_lets_regex()"
         token_afds = {}
         for token, expression in  self.lets_regex.items():
             posfix, err, alph = infix_to_posfix(expression)
@@ -484,46 +517,71 @@ class SuperAFN:
             afn.find_cerradura()
             afd:AFD = afn.to_afd()
             afd.rename_states()
-            # afd.draw_afd()
             afd.minimize()
             afd.rename_states()
-            # afd.draw_afd()
             token_afds[token] = afd
         self.token_afds = token_afds
+        return True, None
 
-    def complie_tokens(self):
-        pass
+    def complie_tokens(self, f_list:list , token_or_err: list, rule:str = "tokens", output:str ="out.py"):
+        with open(output, 'w', encoding="utf-8") as file:
+            for line, token in zip(f_list, token_or_err):
+                if token:
+                    if token in self.rules[rule]:
+                        file.write(f"{self.rules[rule][token]}# token = {token}")
+                    else:
+                        file.write(f"# Token sin regla: {token}")
+                else:
+                    file.write(f"# ERROR en tokneizar la linea '{line}'")
+                file.write("\n")
 
     def token_results_into_file(self, f_list, token_or_err, filename = "token_results.txt"):
-        with open(filename, 'w') as file:
+        with open(filename, 'w', encoding="utf-8") as file:
             file.write(str("STATE\t> Line\t> Token\n"))
             for line, token in zip(f_list, token_or_err):
+                ln = line.replace("\\", "\\\\")
+                ln = reverse_process_line_for_special_chars(ln)
                 prefix = "SUCCESS" if token else "ERROR"
-                file.write(f"{prefix}>{line}>{token}" + '\n')
-
-
+                file.write(f"{prefix}>{ln}>{token}" + '\n')
+    
+    def token_result_into_file_just_token(self, f_list, token_or_err, filename = "only_token_results.txt"):
+        with open(filename, 'w', encoding="utf-8") as file:
+            for _, token in zip(f_list, token_or_err):
+                if type(token) == bool:
+                    file.write(f"#ERROR -> {token}\n")
+                else:
+                    r_tokens = self.rules["tokens"]
+                    if token in r_tokens:
+                        r_token:str = str(r_tokens[token])
+                        r_token = r_token.strip('"').strip("'")
+                        file.write(f"{r_token}\n")
+                    else:
+                        file.write(f"#UNDEF {token} regex identificada pero no asociada a token\n")
+    
     def tokenize_file(self, f_list):
         token_or_err = []
 
         for line in f_list:
+            ln = process_line_for_special_chars(line)
             f_token = False
             for token, afd in self.token_afds.items():
                 if f_token:
                     break
-                if afd.simulacion(line):
+                if afd.simulacion(ln):
                     f_token = token
             
             if not f_token:
+                ln = reverse_process_line_for_special_chars(line)
                 for special_token in self.character_tokens:
                     if f_token:
                         break
-                    if line == special_token:
+                    if ln == special_token:
                         f_token = special_token
             token_or_err.append(f_token)
         return f_list, token_or_err
 
 def main():
-    filename = "ya.lex"
+    filename = "string.lex"
     error, lets, rules, r_priority = read_yalex(filename)
     if error:
         print(f"Error: {error}")
@@ -531,13 +589,12 @@ def main():
     sup = SuperAFN(lets, rules)
     sup.build_lets_regex()
     sup.build_afds()
-    # render_super_afn(sup.token_afds)
-    input = "input" #File input
+    render_super_afn(sup.token_afds, "string")
+    input = "input1" #File input
     f_list = file_into_list(input) 
     f_list, token_or_err = sup.tokenize_file(f_list)
-    sup.token_results_into_file(f_list, token_or_err,)
-
-    print('a')
+    sup.token_results_into_file(f_list, token_or_err)
+    sup.complie_tokens(f_list, token_or_err)
 
 if __name__ == "__main__":
     main()
